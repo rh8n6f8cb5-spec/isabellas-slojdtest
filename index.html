@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#17324d">
+<title>Isabellas slöjdtest</title>
+<style>
+:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172536;background:#f3f6fa}
+*{box-sizing:border-box}
+body{margin:0;padding:18px 12px 40px}
+main{max-width:720px;margin:auto}
+header{background:#17324d;color:white;padding:22px;border-radius:20px;margin-bottom:16px}
+h1{font-size:1.55rem;margin:0 0 6px}
+header p{margin:0;color:#dbe8f4}
+.panel,.question,.result{background:white;border-radius:16px;padding:18px;margin:12px 0;box-shadow:0 2px 10px #142b4210}
+.progressline{height:9px;background:#e7edf3;border-radius:20px;overflow:hidden;margin:8px 0 14px}
+#progress{height:100%;width:0;background:#2687c9;transition:width .2s}
+.meta{display:flex;justify-content:space-between;color:#536477;font-size:.9rem}
+.question h2{font-size:1.05rem;line-height:1.4;margin:5px 0 14px}
+.qmeta{font-size:.78rem;font-weight:700;letter-spacing:.06em;color:#66788a}
+label.option{display:flex;gap:11px;align-items:flex-start;padding:12px;border:1.5px solid #dbe3eb;border-radius:12px;margin:9px 0;cursor:pointer;line-height:1.35}
+label.option:has(input:checked){border-color:#2687c9;background:#edf7fd}
+input{accent-color:#1677b8;width:19px;height:19px;flex:none;margin:1px 0 0}
+button{border:0;border-radius:13px;padding:14px 18px;font-size:1rem;font-weight:700;cursor:pointer;background:#1677b8;color:white;width:100%;margin-top:10px}
+button.secondary{background:#e8eef4;color:#17324d}
+button:disabled{opacity:.45;cursor:not-allowed}
+#result{display:none;text-align:center}
+#score{font-size:2rem;font-weight:800;color:#1677b8;margin:5px}
+.feedback{text-align:left;background:#f5f7fa;padding:12px;border-radius:12px;margin:10px 0}
+.good{color:#147847;font-weight:700}.bad{color:#b42318;font-weight:700}
+small{color:#637386}
+footer{text-align:center;color:#6b7b8c;font-size:.8rem;margin-top:18px}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>🧵 Isabellas slöjdtest</h1>
+<p>12 frågor • Tre svarsalternativ • Nya frågeordningar varje gång</p>
+</header>
+<section class="panel" id="intro">
+<strong>Så här gör du</strong>
+<p>Välj A, B eller C på varje fråga. När alla är besvarade kan du rätta testet och se vilka svar som blev rätt. Du kan göra om testet hur många gånger du vill!</p>
+<button id="start">Starta testet</button>
+</section>
+<section id="quiz" hidden>
+<div class="panel">
+<div class="meta"><span>Besvarade frågor</span><strong id="count">0 av 12</strong></div>
+<div class="progressline"><div id="progress"></div></div>
+<small>Du behöver svara på alla frågor innan du kan rätta.</small>
+</div>
+<div id="questions"></div>
+<button id="grade" disabled>Rätta mitt test</button>
+</section>
+<section class="result panel" id="result" aria-live="polite">
+<div id="score"></div><h2 id="message"></h2><p id="summary"></p>
+<div id="review"></div>
+<button id="again">Gör ett nytt test 🔄</button>
+</section>
+<footer>Fungerar direkt i webbläsaren och behöver inget internet efter att filen har laddats ner.</footer>
+</main>
+<script>
+const bank = [
+{q:"Vad är en skiss?",o:["En ritning som visar hur något ska se ut","En sorts symaskin","En tråd som används vid sömnad"],a:0,e:"En skiss visar idén, bland annat färg, mått, material och teknik."},
+{q:"Vad är mallar eller mönsterdelar?",o:["Olika sorters sytråd","Delarna som behövs för att klippa ut och tillverka något","Verktyg för att mäta kroppen"],a:1,e:"Mönsterdelarna visar vilka delar du behöver för att tillverka det du vill sy."},
+{q:"Vad använder man sytråd till?",o:["Att mäta tyg","Att stryka tyg","Att sy ihop tyg med symaskin"],a:2,e:"Sytråd är den tunna tråd som används för att sy ihop tyg."},
+{q:"Vad betyder sömsmån?",o:["Extra tyg utanför mönsterdelen som behövs för att sy","En sorts knappnål","Tygets baksida"],a:0,e:"Sömsmånen är den extra tygkanten som behövs för sömmen."},
+{q:"Vad innebär det att tvärnåla?",o:["Att klippa tyget i två delar","Att nåla ihop tygbitar på tvären så att nålarna blir lättare att ta bort när du syr","Att mäta tyget med ett måttband"],a:1,e:"Du sätter nålarna på tvären för att lättare kunna ta bort dem under sömnaden."},
+{q:"Vad använder man knappnålar till?",o:["Att sprätta bort sömmar","Att pressa tyg","Att hålla ihop tygbitar innan man syr"],a:2,e:"Knappnålar håller ihop tyget så att det ligger rätt när du ska sy."},
+{q:"Vad är ett måttband?",o:["Ett mjukt, böjbart måttredskap som ofta är 150 cm långt","En sorts sytråd","Ett verktyg som tar bort sömmar"],a:0,e:"Måttbandet används exempelvis för att mäta kroppsmått."},
+{q:"Vad använder man en måttsticka till enligt begreppslistan?",o:["Att mäta kroppens längd","Att mäta när man lägger till sömsmån","Att klippa tyg"],a:1,e:"Måttstickan används för att mäta sömsmånen."},
+{q:"Vad gör man med en sprättkniv?",o:["Syr fast knappar","Mäter tyg","Sprättar bort sömmar som blivit fel"],a:2,e:"Sprättkniven hjälper dig att ta bort en söm som du har sytt fel."},
+{q:"Vad kännetecknar tygets rätsida?",o:["Den har oftast tydligare färger och mönster","Den är alltid helt vit","Den har alltid suddigare mönster"],a:0,e:"Rätsidan är tygets framsida med tydligare färger och mönster."},
+{q:"Vad kännetecknar tygets avigsida?",o:["Den har alltid starkare färger","Den är tygets baksida och har ofta ljusare och otydligare mönster","Det är en extra tygbit"],a:1,e:"Avigsidan är baksidan, ofta med ljusare och mindre tydligt mönster."},
+{q:"Vad använder man ett strykjärn till vid sömnad?",o:["Att klippa bort sömmar","Att hålla ihop tygbitar","Att göra tyg slätt och pressa sömmar"],a:2,e:"Strykjärnet slätar ut tyg och pressar sömmar. Temperaturen beror på materialet."}
+];
+let current=[],answers={};
+const $=id=>document.getElementById(id);
+function shuffle(arr){let a=[...arr];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function start(){current=shuffle(bank);answers={};$("intro").hidden=true;$("quiz").hidden=false;$("result").style.display="none";render();update();}
+function render(){
+$("questions").innerHTML="";
+current.forEach((item,i)=>{
+const card=document.createElement("article");card.className="question";
+const meta=document.createElement("div");meta.className="qmeta";meta.textContent=`FRÅGA ${i+1} AV ${current.length}`;
+const title=document.createElement("h2");title.textContent=item.q;card.append(meta,title);
+item.o.forEach((choice,j)=>{
+const label=document.createElement("label");label.className="option";
+const radio=document.createElement("input");radio.type="radio";radio.name="q"+i;radio.value=j;radio.addEventListener("change",()=>{answers[i]=j;update();});
+const span=document.createElement("span");span.textContent=String.fromCharCode(65+j)+". "+choice;
+label.append(radio,span);card.append(label);
+});
+$("questions").append(card);
+});
+}
+function update(){let n=Object.keys(answers).length;$("count").textContent=`${n} av 12`;$("progress").style.width=(n/12*100)+"%";$("grade").disabled=n!==12;}
+function grade(){
+let score=0;$("review").innerHTML="";
+current.forEach((item,i)=>{
+let right=answers[i]===item.a;if(right)score++;
+const div=document.createElement("div");div.className="feedback";
+const status=document.createElement("div");status.className=right?"good":"bad";status.textContent=right?"✓ Rätt svar!":`✗ Inte riktigt. Rätt svar är ${String.fromCharCode(65+item.a)}.`;
+const question=document.createElement("strong");question.textContent=item.q;
+const explanation=document.createElement("p");explanation.textContent=item.e;
+div.append(status,question,explanation);$("review").append(div);
+});
+$("quiz").hidden=true;$("result").style.display="block";$("score").textContent=`${score} av 12 rätt!`;
+$("message").textContent=score===12?"Fantastiskt! 🏆":score>=10?"Riktigt bra jobbat! 🌟":score>=7?"Bra kämpat! 💪":"Nu tränar vi lite till! ❤️";
+$("summary").textContent=score>=10?"Du verkar ha riktigt bra koll på begreppen!":"Läs förklaringarna till frågorna du missade och försök igen.";
+window.scrollTo({top:0,behavior:"smooth"});
+}
+$("start").addEventListener("click",start);$("grade").addEventListener("click",grade);$("again").addEventListener("click",start);
+</script>
+</body>
+</html>
